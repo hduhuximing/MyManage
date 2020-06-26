@@ -1,9 +1,4 @@
-### M-Vue
-![https://img.shields.io/badge/license-Apache%202.0-blue.svg?longCache=true&style=flat-square](https://img.shields.io/badge/license-Apache%202.0-blue.svg?longCache=true&style=flat-square)
-![https://img.shields.io/badge/springboot-2.1.0-yellow.svg?longCache=true&style=flat-square](https://img.shields.io/badge/springboot-2.1.0-yellow.svg?longCache=true&style=flat-square)
-![https://img.shields.io/badge/shiro-1.4.0-orange.svg?longCache=true&style=flat-square](https://img.shields.io/badge/shiro-1.4.0-orange.svg?longCache=true&style=flat-square)
-![https://img.shields.io/badge/vue-2.5.17-brightgreen.svg?longCache=true&style=flat-square](https://img.shields.io/badge/vue-2.5.17-brightgreen.svg?longCache=true&style=flat-square)
-### 项目文档
+### M-Vue 项目文档
 
 
 本地部署账号密码：
@@ -105,10 +100,5 @@ v-hasPermission | 当用户拥有列出的权限的时候，渲染该元素 |`<t
 v-hasAnyPermission | 当用户拥有列出的任意一项权限的时候，渲染该元素 |`<template v-hasAnyPermission="'user:add','user:update'"><span>hello</span></template>`
 v-hasRole | 当用户拥有列出的角色的时候，渲染该元素 |`<template v-hasRole="'admin','register'"><span>hello</span></template>`
 v-hasAnyRole | 当用户拥有列出的任意一个角色的时候，渲染该元素 |`<template v-hasAnyRole="'admin','register'"><span>hello</span></template>`
-
-### 请求流程
-下图展示了一个请求的完整流程：
-
-![request.png](images/request.png)
 
 

@@ -40,6 +40,7 @@ public class LimitAspect {
     public LimitAspect(RedisTemplate<String, Serializable> limitRedisTemplate) {
         this.limitRedisTemplate = limitRedisTemplate;
     }
+
     @Pointcut("@annotation(cc.mrbird.febs.common.annotation.Limit)")
     public void pointcut() {
     }

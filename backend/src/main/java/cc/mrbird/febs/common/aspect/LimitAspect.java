@@ -91,7 +91,7 @@ public class LimitAspect {
      * 先看一下limit的lua脚本，需要给脚本传两个值，
      * 一个值是限流的key,一个值是限流的数量。获取当前key，然后判断其值是否为nil，
      * 如果为nil的话需要赋值为0，然后进行加1并且和limit进行比对，
-     * 如果大于limt即返回0，说明限流了，如果小于limit则需要使用Redis的INCRBY key 1,就是将key进行加1命令。
+     * 如果大于limt即返回，说明限流了，如果小于limit则需要使用Redis的INCRBY key 1,就是将key进行加1命令。
      * 并且设置超时时间，超时时间是秒，并且如果有需要的话这个秒也是可以用参数进行设置。     * @return lua脚本
      */
     private String buildLuaScript() {
@@ -105,6 +105,49 @@ public class LimitAspect {
                 "\nredis.call('expire',KEYS[1],ARGV[2])" +
                 "\nend" +
                 "\nreturn c;";
+    }
+
+
+    /**
+     * 漏桶
+     * @return
+     */
+    private String funnelRateStr() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("local limitInfo = redis.call('hmget', KEYS[1], 'capacity', 'funnelRate', 'requestNeed', 'water', 'lastTs')\n")
+                .append("local capacity = limitInfo[1]\n").append("local funnelRate = limitInfo[2]\n")
+                .append("local requestNeed = limitInfo[3]\n").append("local water = limitInfo[4]\n")
+                .append("local lastTs = limitInfo[5]\n").append("if capacity == false then\n")
+                .append("    capacity = tonumber(ARGV[1])\n").append("    funnelRate = tonumber(ARGV[2])\n")
+                .append("    requestNeed = tonumber(ARGV[3])\n").append("    water = 0\n")
+                .append("    lastTs = tonumber(ARGV[4])\n").append("    redis.call('hmset', KEYS[1], 'capacity', capacity, 'funnelRate', funnelRate, 'requestNeed', requestNeed, 'water', water, 'lastTs', lastTs)\n")
+                .append("    return true\n").append("else\n").append("    local nowTs = tonumber(ARGV[4])\n")
+                .append("    local waterPass = tonumber((nowTs - lastTs) * funnelRate)\n").append("    water = math.max(0, water - waterPass)\n")
+                .append("    lastTs = nowTs\n").append("    requestNeed = tonumber(requestNeed)\n").append("    if capacity - water >= requestNeed then\n")
+                .append("        water = water + requestNeed\n").append("        redis.call('hmset', KEYS[1], 'water', water, 'lastTs', lastTs)\n")
+                .append("        return true\n    end\n    return false\nend");
+        return builder.toString();
+    }
+
+    /**
+     * 令牌桶
+     * @return
+     */
+    private String tokenRateStr() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("local limitInfo = redis.call('hmget', KEYS[1], 'capacity', 'funnelRate', 'leftToken', 'lastTs')\n")
+                .append("local capacity = limitInfo[1]\n").append("local tokenRate = limitInfo[2]\n")
+                .append("local leftToken = limitInfo[3]\n").append("local lastTs = limitInfo[4]\n")
+                .append("if capacity == false then\n").append("    capacity = tonumber(ARGV[1])\n")
+                .append("    tokenRate = tonumber(ARGV[2])\n").append("    leftToken = tonumber(ARGV[5])\n")
+                .append("    lastTs = tonumber(ARGV[4])\n").append("    redis.call('hmset', KEYS[1], 'capacity', capacity, 'funnelRate', tokenRate, 'leftToken', leftToken, 'lastTs', lastTs)\n")
+                .append("    return -1\nelse\n").append("    local nowTs = tonumber(ARGV[4])\n")
+                .append("    local genTokenNum = tonumber((nowTs - lastTs) * tokenRate)\n").append("    leftToken = genTokenNum + leftToken\n")
+                .append("    leftToken = math.min(capacity, leftToken)\n    lastTs = nowTs\n    local requestNeed = tonumber(ARGV[3])\n")
+                .append("    if leftToken >= requestNeed then\n        leftToken = leftToken - requestNeed\n")
+                .append("        redis.call('hmset', KEYS[1], 'leftToken', leftToken, 'lastTs', lastTs)\n")
+                .append("        return -1\n    end\n    return (requestNeed - leftToken) / tokenRate\nend");
+        return builder.toString();
     }
 
 }
